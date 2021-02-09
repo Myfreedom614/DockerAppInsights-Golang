@@ -1,0 +1,32 @@
+traces 
+| extend data = parse_json(message)
+| extend sessions = toint(data.Sessions), location = tostring(data.LocationKey), serverIP = tostring(data.ServerIP)
+| where timestamp between (datetime('1/22/2021, 12:00:00')..now())
+//| order by timestamp desc
+| project timestamp, sessions, location, serverIP
+| where location == "china-east-azure"
+//| where location  == "china-north-azure"
+| project timestamp, sessions
+//| limit 100
+| render timechart 
+
+traces 
+| order by timestamp desc
+//| where message contains "china-east-azure"
+//| where message contains "china-north-azure"
+| limit 100
+
+traces 
+| extend data = parse_json(message)
+| extend sessions = toint(data.Sessions), location = tostring(data.LocationKey), serverIP = tostring(data.ServerIP)
+| where timestamp between (datetime('1/22/2021, 12:00:00')..now())
+| project timestamp= datetime_add('hour', 8, datetime_add('second', 2, todatetime(format_datetime(timestamp, 'yyyy-MM-dd HH:mm:ss')))), sessions, location
+| where location  == "china-north-azure"
+| join (
+traces 
+| extend data = parse_json(message)
+| extend sessions = toint(data.Sessions), location = tostring(data.LocationKey), serverIP = tostring(data.ServerIP)
+| where timestamp between (datetime('1/22/2021, 12:00:00')..now())
+| project timestamp= datetime_add('hour', 8, todatetime(format_datetime(timestamp, 'yyyy-MM-dd HH:mm:ss'))), sessions, location, serverIP
+| where location == "china-east-azure"
+) on timestamp, $left.timestamp == $right.timestamp
